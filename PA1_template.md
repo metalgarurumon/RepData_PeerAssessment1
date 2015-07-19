@@ -19,10 +19,6 @@ summary(activity)
 ##  NA's   :2304
 ```
 
-```r
-attach(activity)
-```
-
 
 
 ## What is mean total number of steps taken per day? 
@@ -31,7 +27,8 @@ attach(activity)
 ###1. Calculate the total number of steps taken per day
 
 ```r
-steps.perday <- sapply(split(activity, date), function(a) sum(a$steps,na.rm=T) )
+steps.perday <- sapply(split(activity, activity$date), 
+                       function(a) sum(a$steps,na.rm=T) )
 steps.perday
 ```
 
@@ -94,9 +91,10 @@ median(steps.perday)
 ###1. Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
 
 ```r
-daily.activity <- sapply(split(activity, interval), function(a) mean(a$steps,na.rm=T) )
+daily.activity <- sapply(split(activity, activity$interval), 
+                         function(a) mean(a$steps,na.rm=T) )
 plot(names(daily.activity), daily.activity, type="l", 
-     xlab="clock", main="Average Daily Activity Pattern")
+     xlab="intervals", main="Average Daily Activity Pattern")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-5-1.png) 
@@ -128,7 +126,7 @@ nrow(activity)-nrow( activity[good,] )
 ```
 
 ```r
-sum(is.na(steps))    # Double Check
+sum(is.na(activity$steps))    # Double Check
 ```
 
 ```
@@ -136,10 +134,10 @@ sum(is.na(steps))    # Double Check
 ```
 The total number of missing values in the dataset is 2304.
 
-###2. Devise a strategy for filling in all of the missing values in the dataset. Here I use the median for that interval.
+###2. Devise a strategy for filling in all of the missing values in the dataset. Here I use the median for each 5-min interval.
 
 ```r
-imp <- sapply(split(activity, interval), function(a) median(a$steps,na.rm=T) )
+imp <- sapply(split(activity, activity$interval), function(a) median(a$steps,na.rm=T) )
 imp
 ```
 
@@ -190,12 +188,10 @@ imp
 
 ```r
 activity.imp  <- activity
-detach()
-attach(activity.imp)
 for (i in 1:nrow(activity.imp) )  {
-      steps[is.na(steps)] <- imp[ as.character( interval[is.na(steps)] ) ]
+      flag <- is.na(activity.imp$steps)
+      activity.imp$steps[flag] <- imp[ as.character( activity.imp$interval[flag] ) ]
 }
-activity.imp$steps <- steps
 summary(activity.imp)
 ```
 
@@ -214,7 +210,8 @@ activity.imp is the new dataset with the missing data filled in.
 ###4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
 ```r
-steps.perday.imp <- sapply(split(activity.imp, date), function(a) sum(a$steps,na.rm=T) )
+steps.perday.imp <- sapply(split(activity.imp, activity.imp$date), 
+                           function(a) sum(a$steps) )
 mean(steps.perday.imp)
 ```
 
@@ -266,7 +263,7 @@ hist(steps.perday.imp, xlab="steps", breaks=10,
 
 ![](PA1_template_files/figure-html/unnamed-chunk-10-1.png) 
 
-The mean of the total number of steps per day is slightly greater than the orginal one, while the median remains the same. The histogram of total number of steps per day remains the same as the original one. Imputing missing data have only a tiny impact on the estimates of the total daily number of steps, since only 8 days of NA values are imputed, and imputed values are very small, only influencing the lower tail of the distribution.
+The mean of the total number of steps per day is slightly greater than the orginal one, while the median remains the same. The histogram of total number of steps per day remains the same as the original one. Imputing missing data have only a tiny impact on the estimates of the total daily number of steps, since in the original dataset NA values resides in only 8 days, and imputed values(the median of the corresponding interval) are often relatively small, only influencing the lower tail of the distribution of total steps per day.
 
 
 
@@ -275,7 +272,7 @@ The mean of the total number of steps per day is slightly greater than the orgin
 ###1. Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
 
 ```r
-wkd <- weekdays(date)
+wkd <- weekdays(activity.imp$date)
 for (i in 1:length(wkd) )  {
       if (wkd[i]=="Sunday" | wkd[i]=="Saturday")   wkd[i] <- "weekend"
       else   wkd[i] <- "weekday"
@@ -299,55 +296,45 @@ Variable wkd indicates whether a given date is a weekday or weekend day.
 ###2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
 
 ```r
-activity.imp.wkday <- subset(activity.imp, wkd=="weekday")
-activity.imp.wkend <- subset(activity.imp, wkd=="weekend")
-str(activity.imp.wkday)
+activity.imp.wkday <- subset(activity.imp, activity.imp$wkd=="weekday")
+activity.imp.wkend <- subset(activity.imp, activity.imp$wkd=="weekend")
+summary(activity.imp.wkday)
 ```
 
 ```
-## 'data.frame':	12960 obs. of  4 variables:
-##  $ steps   : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ date    : Date, format: "2012-10-01" "2012-10-01" ...
-##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
-##  $ wkd     : Factor w/ 2 levels "weekday","weekend": 1 1 1 1 1 1 1 1 1 1 ...
-```
-
-```r
-str(activity.imp.wkend)
-```
-
-```
-## 'data.frame':	4608 obs. of  4 variables:
-##  $ steps   : int  0 0 0 0 0 0 0 0 0 0 ...
-##  $ date    : Date, format: "2012-10-06" "2012-10-06" ...
-##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
-##  $ wkd     : Factor w/ 2 levels "weekday","weekend": 2 2 2 2 2 2 2 2 2 2 ...
+##      steps             date               interval           wkd       
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0   weekday:12960  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8   weekend:    0  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5                  
+##  Mean   : 31.15   Mean   :2012-10-31   Mean   :1177.5                  
+##  3rd Qu.:  5.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2                  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0
 ```
 
 ```r
-daily.activity.wkday <- sapply(split(activity.imp.wkday, interval), function(a) mean(a$steps) )
+summary(activity.imp.wkend)
 ```
 
 ```
-## Warning in split.default(x = seq_len(nrow(x)), f = f, drop = drop, ...):
-## data length is not a multiple of split variable
-```
-
-```r
-daily.activity.wkend <- sapply(split(activity.imp.wkend, interval), function(a) mean(a$steps) )
-```
-
-```
-## Warning in split.default(x = seq_len(nrow(x)), f = f, drop = drop, ...):
-## data length is not a multiple of split variable
+##      steps             date               interval           wkd      
+##  Min.   :  0.00   Min.   :2012-10-06   Min.   :   0.0   weekday:   0  
+##  1st Qu.:  0.00   1st Qu.:2012-10-18   1st Qu.: 588.8   weekend:4608  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5                 
+##  Mean   : 38.19   Mean   :2012-10-31   Mean   :1177.5                 
+##  3rd Qu.: 17.25   3rd Qu.:2012-11-12   3rd Qu.:1766.2                 
+##  Max.   :785.00   Max.   :2012-11-25   Max.   :2355.0
 ```
 
 ```r
+daily.activity.wkday <- sapply(split(activity.imp.wkday, activity.imp.wkday$interval ),
+                               function(a) mean(a$steps) )
+daily.activity.wkend <- sapply(split(activity.imp.wkend, activity.imp.wkend$interval ),
+                               function(a) mean(a$steps) )
 par(mfrow = c(2, 1))
 plot(names(daily.activity.wkday), daily.activity.wkday, type="l", ylim=c(0,200),
-     xlab="clock", main="Average Daily Activity Pattern of weekdays")
+     xlab="intervals", main="Average Daily Activity Pattern of weekdays")
 plot(names(daily.activity.wkend), daily.activity.wkend, type="l", ylim=c(0,200),
-     xlab="clock", main="Average Daily Activity Pattern of weekends")     
+     xlab="intervals", main="Average Daily Activity Pattern of weekends")     
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-12-1.png) 
@@ -358,8 +345,8 @@ Above is the panel plot made by Base Plotting System.
 
 ```r
 daily.activity.imp <- c(daily.activity.wkday,daily.activity.wkend)
-daily.activity.interval <- rep(unique(activity$interval),2)
-daily.activity.wkd  <- rep(c("weekday", "weekend" ), each=length(daily.activity.wkday))
+daily.activity.interval <- rep(unique(activity.imp$interval),2)
+daily.activity.wkd  <- rep(c("weekday", "weekend"), each=length(daily.activity.wkday) )
 library(lattice)
 xyplot(daily.activity.imp~daily.activity.interval |daily.activity.wkd , type="l", 
        layout = c(1, 2), xlab="intervals", ylab="number of steps")
